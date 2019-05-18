@@ -14,9 +14,9 @@ Esta práctica ha sido elaborada de forma individual por María del Mar Colino Gar
 
 El presente repositorio define la siguiente estructura de directorios y ficheros:
 
-doc: Documento pdf con las respuestas planteadas en la práctica.
-src: Código fuente con el análisis (se ha decidido realizarlo en RMarkdown por lo que lleva integrado el código fuente, junto con la explicación y respuestas a las preguntas planteadas en la práctica)
-datasets: Contenedor de los datos originales, así como de los datos generados tras la fase de limpieza de los datos
+* doc: Documento pdf con las respuestas planteadas en la práctica.
+* src: Código fuente con el análisis (se ha decidido realizarlo en RMarkdown por lo que lleva integrado el código fuente, junto con la explicación y respuestas a las preguntas planteadas en la práctica)
+* datasets: Contenedor de los datos originales, así como de los datos generados tras la fase de limpieza de los datos.    
     - datasets generados: *wine_quality.csv*, *wine_quality_scaled.csv*
     - dataset originales: *original/winequality-red.csv*, *winequality-white.csv*
         
