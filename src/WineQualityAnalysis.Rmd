@@ -17,7 +17,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Definición del problema a resolver - *problem statement*
 
-A partir del conjunto de datos sobre vinos se plantea realizar un análisis y estudio sobre las características de los vinos con el fin de entender cómo influyen sobre su calidad. Disponer de este tipo de información es de gran utilidad a cualquier productor de vino que desee entender las características que más afectan a la calidad del vino, y como afectan, de cara a establecer estrategias para mejorar su producción.
+A partir de un conjunto de datos sobre vinos se desea analizar, qué características de los vinos influencian la calidad de estos. 
+
+Disponer de este tipo de información es de gran utilidad a cualquier productor de vino que desee entender las características que más afectan a la calidad del vino, y como afectan, de cara a establecer estrategias para mejorar su producción y/o venta.
 
 Adicionalmente, a partir de la información disponible en este conjunto de datos podrán construirse modelos de regresión y/o clasificación que permitan predecir la calidad de nuevas observaciones de vinos en base a sus características. También será viable llevar a cabo contrastes de hipótesis para ayudar a identificar propiedades que pueden resultar interesantes en las muestras y que puedan ser inferidas con respecto a la población.
 
@@ -194,9 +196,9 @@ A continuación, vamos a hacer uso de un diagrama que nos permite visualizar gra
 ggpairs(wine_quality.base, aes(colour = type, alpha = 0.4))
 ```
 
-Como se observa, en un mismo gráfico, y agrupado por tipo de vino, disponemos de gráficos por pares de características, *boxplots*, diagramas de densidad, algo que nos facilita enormemente tener una visión preliminar. Al observar el gráfico, rápidamente podemos confirmar la existencia de una diferencia en el comportamiento de las características en base al tipo de vino, además, de este gráfico también pueden observarse relaciones entre cada característica y la calidad resultante, en función del tipo de vino.
+Como se observa, en un mismo gráfico, y agrupado por tipo de vino, disponemos de gráficos por pares de características, *boxplots*, diagramas de densidad, algo que nos facilita enormemente tener una visión preliminar. Al observar el gráfico, rápidamente podemos confirmar la existencia de una diferencia en el comportamiento de las características en base al tipo de vino, además en este gráfico también pueden observarse relaciones entre cada característica y la calidad resultante, en función del tipo de vino.
 
-Finalmente, vamos a usar **PCA** (*Principal Component Analisys*) para obtener una representación multidimensional simplificada de los datos, que puede ser usada para visualízalos. El propósito de PCA es, encontrar la mejor representación, con la menor dimensionalidad, que pueda recoger la mayor parte de la variabilidad del conjunto de datos.
+Para terminar de confirmar vamos a apoyarnos en otra herramienta que nos permitirá obtener una representación multidimensional simplificada de los datos, **PCA** (*Principal Component Analisys*). El propósito de PCA es, encontrar la mejor representación, con la menor dimensionalidad, que pueda recoger la mayor parte de la variabilidad del conjunto de datos.
 
 ```{r echo = TRUE}
 ## Realiza un plot PCA de los datos clusterizados
@@ -228,6 +230,45 @@ plotClusterPCA(wine_quality, wine_quality.base, "type", scaled = FALSE)
 ```
 
 Como se observa, visualmente se identifican bastante bien como las observaciones asociadas a vinos tintos y blancos, pueden ser agrupadas en distintos segmentos.
+
+El tipo de vino es una de las características del vino que pueden influenciar la calidad, pero vamos ahora a analizar un poco la relación del resto de características con la calidad. Para ello, en primer lugar, se aplicarán algunas conversiones sobre el atributo quality que nos facilitarán la comprensión de los resultados. Vamos a generar un nuevo atributo, a partir de la discretización del atributo de calidad, estableciéndose los siguientes rangos:
+
+* low: [1-4]    
+* medium: [5-6]    
+* high: [7-10]    
+
+```{r message= FALSE, warning=FALSE}
+# en primer lugar hacemos una copia del data frame base sobre el que se van a comenzar las operaciones de limpieza
+wine_quality.clean = data.frame(wine_quality.base)
+
+# Estandarización
+# - Quality level 'low' : [1-4]
+wine_quality.clean$quality_level[wine_quality.clean$quality >= 1 & wine_quality.clean$quality <= 4] = "low"
+# - Quality level 'medium' : [5-6]
+wine_quality.clean$quality_level[wine_quality.clean$quality >= 5 & wine_quality.clean$quality <= 6] = "medium"
+# - Quality level 'high' : [7-10]
+wine_quality.clean$quality_level[wine_quality.clean$quality >= 7 & wine_quality.clean$quality <= 10] = "high"
+
+wine_quality.clean$quality_level = as.factor(wine_quality.clean$quality_level)
+```
+
+Y a continuación mostraremos de nuevo el plot con *ggpairs*, en este caso mostraremos diferenciando por el valor de *quality_level* previamente calculado.
+
+Comenzamos analizando para el vino tinto:
+
+```{r message= FALSE, warning=FALSE}
+ggpairs(wine_quality.clean[wine_quality.clean$type == "red",], aes(colour = quality_level, alpha = 0.4))
+```
+
+En el resultado obtenido, podemos ver, por ejemplo, como las características *volatile.acidity, citric.acidity, sulphates* y *alcohol* son algunas de las que mayor variación tienen en función de la calidad del vino, más adelante se estudiará con más detalle.
+
+Y continuamos obtenemos la misma información para el vino blanco:
+
+```{r message= FALSE, warning=FALSE}
+ggpairs(wine_quality.clean[wine_quality.clean$type == "white",], aes(colour = quality_level, alpha = 0.4))
+```
+
+Para el vino blanco, la variación de las distintas características para los distintos niveles de calidad es un poco menos significativa que la que encontrábamos en el vino tinto, en este caso las mayores variaciones podemos encontrarlas por ejemplo en *volatile.acidity, free.sulfur.dioxide, total.sulfur.dioxidy* y *alcohol*.
 
 ### Tratamiento de datos perdidos y valores extremos
 #### Datos perdidos {#datosPerdidos}
@@ -415,9 +456,6 @@ En nuestro caso, aun disponiéndose de un número suficientemente alto de observ
 En primer lugar, vamos a asignar valor ‘NA’ a todos los datos que estamos considerando como perdidos y/o erróneos, para posteriormente pasar a aplicar un método de imputación de valores perdidos.
 
 ```{r echo = TRUE}
-# hacemos una copia del data frame base sobre la que vamos a realizar la limpieza
-wine_quality.clean = data.frame(wine_quality.base)
-
 # asignamos valor NA
 # - a los valores 0 del atributo 'citric.acid'
 wine_quality.clean[wine_quality.base$citric.acid==0,]$citric.acid = NA
@@ -558,9 +596,11 @@ Como vemos, se han logrado imputar todos los valores adecuadamente.
 
 Una vez han sido realizadas las tareas de tratamiento de datos perdidos y valores extremos, se va a realizar una selección y reducción de los datos.
 
-Con el fin de poder realizar estudios comparativos entre vinos de tipo tinto y blanco, sobre un número equivalente de observaciones, se van a aplicar un mecanismo de reducción de la cantidad, para obtener el mismo número de muestras para vino blanco, que las que disponemos para vino tinto. 
+Con el fin de poder realizar estudios comparativos sobre si la característica del vino, “tipo de vino”, influencia la calidad del vino, vamos a obtener una muestra de datos equivalente para ambos tipos de vino, intentando de esta forma que el nivel de confianza de los resultados obtenidos esté relativamente compensado.
 
-En concreto se aplicará una técnica de **sampling** (de tipo muestreo aleatorio simple sin sustitución), que es una vía simple para obtener el resultado deseado:
+Además vamos a realizar un leve estudio comparativo entre los grupos de vinos clasificados en función de su calidad, creándose dos grupos, uno para calidad alta y otro para calidad media_baja. Aquí, se ha de notar, que se ha decidió simplificar y no crear unas muestras equitativas para cada nivel de calidad, tal cual se acaba de hacer para los grupos por tipo de vino.
+
+Para llevar a cabo esta operación se aplicará una técnica de **sampling** (de tipo muestreo aleatorio simple sin sustitución), que es una vía simple para obtener el resultado deseado:
 
 
 ```{r echo = TRUE}
@@ -587,32 +627,20 @@ Respecto a los atributos a considerar, en principio no se van a realizar tareas 
 
 Finalmente, previo a comenzar con el análisis de los datos, se estudia si conviene realizar algún tipo de transformación sobre los datos que pueda ayudar a que los posteriores análisis sean más eficientes, y/o puedan facilitar la comprensión de los resultados.
 
-Con el objetivo de mejorar la comprensión del resultado de alguno de los análisis se va a generar un nuevo atributo, a partir de la discretización del atributo de calidad, estableciéndose los siguientes rangos:
-•	low: [1-4]
-•	medium: [5-6]
-•	high: [7-10]
+En apartados previos, ha sido realizada una discretización para el atributo *quality*, con el objetivo de mejorar la comprensión de los resultados.
 
-
-```{r echo = TRUE}
-# Estandarización
-# - Quality level 'low' : [1-4]
-wine_quality.clean$quality_level[wine_quality.clean$quality >= 1 & wine_quality.clean$quality <= 4] = "low"
-# - Quality level 'medium' : [5-6]
-wine_quality.clean$quality_level[wine_quality.clean$quality >= 5 & wine_quality.clean$quality <= 6] = "medium"
-# - Quality level 'high' : [7-10]
-wine_quality.clean$quality_level[wine_quality.clean$quality >= 7 & wine_quality.clean$quality <= 10] = "high"
-
-wine_quality.clean$quality_level = as.factor(wine_quality.clean$quality_level)
-```
-
+Adicionalmente, puesto que en análisis posteriores se utilizarán algunas técnicas basadas en las distancias, y estas pueden verse muy afectadas por la falta de normalización de los datos, se generará un juego de datos normalizado para asegurarnos la calidad de los resultados de dichos análisis:
 
 ```{r echo = TRUE}
 # Normalización de los atributos numéricos
 wine_quality.clean.scaled = as.data.frame(scale(wine_quality.clean[1:11]))
+# conservamos el valor de la calidad inicial y además añadimos un valor escalado
 wine_quality.clean.scaled$quality = wine_quality.clean$quality
+wine_quality.clean.scaled$quality_scaled = scale(wine_quality.clean.scaled$quality)
 wine_quality.clean.scaled$quality_level = wine_quality.clean$quality_level
 wine_quality.clean.scaled$type = wine_quality.clean$type
 ```
+
 ### Exportación de los datos preprocesados
 
 Una vez hemos realizado todas las tareas para la limpieza de los datos, procedemos a volcarlos, para tener un juego de datos limpio del que partir para posteriores análisis.
@@ -621,9 +649,9 @@ Se llevará a cabo el volcado tanto del dataset estandarizado como no estandariz
 
 ```{r echo = TRUE}
 # Escritura en .csv de los datos sin estandarizar
-write.csv(wine_quality.clean, "datasets/wine_quality.csv",row.names=FALSE)
+write.csv(wine_quality.clean, "./../datasets/wine_quality.csv",row.names=FALSE)
 # Escritura en .csv de los datos estandarizarizados
-write.csv(wine_quality.clean.scaled, "datasets/wine_quality_scaled.csv",row.names=FALSE)
+write.csv(wine_quality.clean.scaled, "./../datasets/wine_quality_scaled.csv",row.names=FALSE)
 ```
 
 ## Análisis de los datos y construcción de modelos - *data analysis & data mining*
@@ -634,25 +662,36 @@ Con el objetivo de poder llevar a cabo los estudios necesarios para poder satisf
 
 En nuestro caso partiremos de los juegos de datos que han sido generados en la etapa previa, y para poder realizar estudios comparativos sobre los grupos de datos asociados a cada tipo de vino, se realizará una subdivisión de los datos por esta característica.
 
+Adicionalmente, para el caso del vino tinto, que es en el que se han detectado en el screening inicial unas diferencias más significativas en la distribución de algunas características en función de los distintos niveles de calidad, vamos a realizar un leve estudio comparativo entre los grupos de vinos clasificados en función de su calidad, creándose dos grupos, uno para calidad *alta* y otro para calidad *media_baja*. Aquí, se ha de notar, que se ha decidió simplificar y no crear unas muestras equitativas para cada nivel de calidad, tal cual hicimos para los grupos por tipo de vino en el apartado de Seleccion y Reducción de los Datos.
+
 ```{r echo = TRUE}
 # carga de juego de datos vinos -  normalizada
-wine_quality.clean.scaled = read.csv("datasets/wine_quality_scaled.csv")
+wine_quality.clean.scaled = read.csv("./../datasets/wine_quality_scaled.csv")
 wine_quality_red.clean.scaled = wine_quality.clean.scaled[wine_quality.clean.scaled$type == "red",]
 wine_quality_white.clean.scaled = wine_quality.clean.scaled[wine_quality.clean.scaled$type == "white",]
 
 # carga de juego de datos vinos - sin normalizadar
-wine_quality.clean = read.csv("datasets/wine_quality.csv")
+wine_quality.clean = read.csv("./../datasets/wine_quality.csv")
 wine_quality_red.clean = wine_quality.clean.scaled[wine_quality.clean.scaled$type == "red",]
 wine_quality_white.clean = wine_quality.clean.scaled[wine_quality.clean.scaled$type == "white",]
+
+# seleccionamos grupos por niveles de calidad
+wine_quality_red_high.clean = wine_quality.clean[wine_quality.clean$type=="red" & wine_quality.clean$quality_level=="high",]
+wine_quality_red_medium_low.clean = wine_quality.clean[wine_quality.clean$type=="red" & (wine_quality.clean$quality_level=="low" | wine_quality.clean$quality_level=="medium"),]
+wine_quality_red_medium_low.clean$quality_level = "medium_low"
+wine_quality_red_medium_low.clean$quality_level = as.factor(wine_quality_red_medium_low.clean$quality_level)
+# y creamos un dataset con los dos grupos
+wine_quality_red_high_and_medium_low.clean = data.frame(wine_quality_red_high.clean)
+wine_quality_red_high_and_medium_low.clean = rbind(wine_quality_red_high_and_medium_low.clean, wine_quality_red_medium_low.clean)
 ```
 
 Una vez han sido cargados los *datasets* que van a ser usados, enumeramos el conjunto de análisis que van a ser realizados:
 
-* verificación de la normalidad y homogeneidad de la varianza, paso previo a poder aplicar algunos tipos de test estadísticos,
-* comparación entre grupos, trataremos de determinar si el tipo de vino puede vincularse de alguna forma a la calidad,
-* estudios de correlación, trataremos de comprender en mayor nivel de profundidad como las distintas características influencian la calidad, y se influencian entre ellas,
-* construcción de modelos de clasificación, perseguiremos de entender en mayor profundidad la relación de las características del vino con la calidad, así como obtener un mecanismo que nos permita predecir el nivel de calidad para nuevas observaciones de vino,
-* exploraciones visuales, trataremos de consolidar, resumir y representar el conocimiento adquirido.
+* Verificación de la normalidad y homogeneidad de la varianza, paso previo a poder aplicar algunos tipos de test estadísticos.    
+* Comparación entre grupos, trataremos de determinar si existen diferencias significativas en la calidad del vino en función de la característica, “tipo de vino”. Adicionalmente se realizará alguna prueba para la comparación entre grupos de vinos de calidad alta y media_baja, para determinar si existen diferencias significativas en algunas de las características del vino en función del nivel de calidad.    
+* Estudios de correlación, se llevará a cabo un análisis con el objetivo de comprender como el resto de las características del vino, influyen sobre la calidad del vino; este análisis será llevado a cabo tanto para los tipos de vino tinto, como para los tipos de vino blanco. Adicionalmente, se estudiará como influyen unas características sobre otras.    
+* Construcción de modelos de clasificación, perseguiremos de entender en mayor profundidad la relación de las características del vino con la calidad, así como obtener un mecanismo que nos permita predecir el nivel de calidad para nuevas observaciones de vino.    
+* Exploraciones visuales, trataremos de consolidar, resumir y representar el conocimiento adquirido.    
 
 ### Comprobación de la normalidad y homogeneidad de la varianza
 
@@ -664,9 +703,10 @@ Comenzamos por la **verificación de la normalidad**, la cual llevaremos a cabo 
 
 ```{r message= FALSE, warning=FALSE}
 # construir un plot con los diagramas de densidad por características y tipo de vino
-wine_quality = wine_quality.clean.scaled
-featurePlot(x = wine_quality[, 1:11], 
-            y = wine_quality$type, plot = "density", 
+wine_quality = wine_quality.clean.scaled[, 1:11]
+wine_quality$quality =  wine_quality.clean.scaled$quality;
+featurePlot(x = wine_quality, 
+            y = wine_quality.clean.scaled$type, plot = "density", 
             scales = list(x = list(relation="free"), y = list(relation="free")), 
             adjust = 1.5, pch = ".", 
             layout = c(4, 3), auto.key = list(columns = 3))
@@ -675,6 +715,7 @@ featurePlot(x = wine_quality[, 1:11],
 Al visualizar los diagramas de densidad agrupados por clase de vino, vemos que la distribución de algunas variables tienen un aspecto similar a una distribución normal, observemos un poco más de cerca la distribución para las variables *pH* y *fixed.acidity*:
 
 ```{r echo = TRUE}
+wine_quality = wine_quality.clean.scaled[, c(1:11,15)]
 # diagrama de densidad para el 'pH' por tipo de vino, indicando valor central
 mu = ddply(wine_quality, "type", summarise, grp.mean=mean(pH))
 plot1 = ggplot(wine_quality, aes(x=pH, fill=type)) +
@@ -762,7 +803,7 @@ Como se ha comentado inicialmente, estamos interesados en comprender los factore
  
 Para responder a esta pregunta vamos a comparar la calidad de los vinos entre los grupos de vinos tinto y blanco, para ver si hay diferencias significativas. Para ello vamos a plantear un contraste de hipótesis sobre las muestras para determinar si un tipo de vino obtiene valores de calidad superiores al otro tipo de vino.
 
-Se ha de considerar, que dado que en las verificaciones previas se ha concluido que la distribución de la variable *quality* no es normal, se deberían aplicar pruebas estadísticas no paramétricas para llevar a cabo esta comparación, pero puesto que el tamaño de la muestra n > 30, y según el **TCL** (teorema central del límite), en estos casos la media se puede aproximar a una distribución normal, y sería viable aplicar un contrate con la técnica **t de Student** del siguiente tipo:
+Se ha de considerar, que, dado que en las verificaciones previamente realizadas en el apartado COMPROBACIÓN NORMALIDAD Y HOMOGENEIDAD DE LA VARIANZA se ha concluido que la distribución de la variable **quality** no es normal, se deberían aplicar pruebas estadísticas no paramétricas para llevar a cabo esta comparación. Pero puesto que el tamaño de la muestra n > 30, y según el **TCL** (teorema central del límite), en estos casos la media se puede aproximar a una distribución normal, sería viable aplicar un contrate con la técnica **t de Student** del siguiente tipo:
 
 * H_0:μ_r- μ_w= 0   (igualdad de las medias)
 * H_0:μ_r- μ_w<0   (media para tintos inferior a media para blancos)
@@ -775,8 +816,8 @@ Se ha de considerar, que dado que en las verificaciones previas se ha concluido 
 t.test(wine_quality_red.clean.scaled$quality, wine_quality_white.clean.scaled$quality, alternative = "less")
 ```
 
+Aunque, realmente puede ser mejor tomar una actitud más conservadora y plantear el contraste de hipótesis apoyándonos en un test no paramétrico, dado que partimos de datos donde no se cumple la normalidad, podríamos hacerlo de la siguiente forma con un test de **Mann-Whitney**:
 
-Si preferimos plantear el contraste de hipótesis apoyándonos en un test no paramétrico, dado que partimos de datos donde no se cumple la normalidad, podríamos hacerlo de la siguiente forma con un test de **Mann-Whitney**:
 * H_0:〖distribución〗_r= 〖distribución〗_w   
 * H_0:〖distribución〗_r<> 〖distribución〗_w
     - p_valor< α →Rechazamos la hipótesis nula
@@ -822,17 +863,57 @@ plot1 = barplotBiVariable(wine_quality.clean.scaled, "type", "quality")
 plot1
 ```
 
+Adicionalmente, ahora se realizará alguna prueba para la comparación entre grupos de vinos de calidad *alta* y *media_baja*, con el objetivo de determinar si existen diferencias significativas en algunas de las características del vino en función del nivel de calidad. 
+
+Como pudimos observar en el screening inicial, algunas características como *volatile.acidity, citric.acidity, sulphates* y *alcohol* parecía que presentaban una variación en la distribución en función del nivel de calidad. Vamos ahora a investigar un poco si dicha variación observada, es realmente significativa, y no consecuencia del azar. Pero antes haciendo uso del dataset que se ha creado previamente en el apartado  Selección grupos de datos a analizar y planificación de los análisis vamos a mostrar plot haciendo uso de *ggpairs*, para ver la distribución de las características, esta vez agrupadas por estos dos niveles de calidad que vamos a usar para la comparación de grupos:
+
+
+```{r message= FALSE, warning=FALSE}
+ggpairs(wine_quality_red_high_and_medium_low.clean, aes(colour = quality_level, alpha = 0.4))
+```
+
+En este plot, vemos como las diferencias en la distribución de algunas de las características son aún más llamativas que las que habíamos encontrado con tres niveles de calidad, vamos a trabajar sobre algunas características para ver si realmente hay diferencias significativas en la distribución, o el efecto está puede estar producido por el azar.
+
+Dado que partimos de variables que no siguen una distribución normal vamos a usar vamos a aplicar el test de **Mann-Whitney** no paramétrico con el objetivo de plantear el siguiente contraste de hipótesis sobre algunas de las característica donde se observa mayor variación en la distribución, para los grupos de los niveles de calidad *high* y *médium_low*:
+
+* H_0:〖distribución〗_r= 〖distribución〗_w   
+* H_0:〖distribución〗_r<> 〖distribución〗_w
+    - p_valor< α →Rechazamos la hipótesis nula
+    - p_valor> α →No se puede  rechazar la hipótesis nula
+    
+```{r echo = TRUE}
+# Realizar el test de Mann-Whitney sobre la variable volatile.acidity para los dos niveles de calidad
+wilcox.test(volatile.acidity~quality_level, data = wine_quality_red_high_and_medium_low.clean )
+# Realizar el test de Mann-Whitney sobre la variable citric.acid para los dos niveles de calidad
+wilcox.test(citric.acid~quality_level, data = wine_quality_red_high_and_medium_low.clean )
+# Realizar el test de Mann-Whitney sobre la variable sulphates para los dos niveles de calidad
+wilcox.test(sulphates~quality_level, data = wine_quality_red_high_and_medium_low.clean )
+# Realizar el test de Mann-Whitney sobre la variable alcohol para los dos niveles de calidad
+wilcox.test(alcohol~quality_level, data = wine_quality_red_high_and_medium_low.clean )
+```
+
+Comprobamos que el valor de p-value nos impide aceptar la hipótesis nula, por lo tanto, se ha de concluir que si existen diferencias significativas en la distribución de las variables analizadas para los dos niveles de calidad.
+
+Estudiamos ahora la variable pH, en las que se observa una diferencia menor en la distribución:
+
+```{r echo = TRUE}
+# Realizar el test de Mann-Whitney sobre la variable pH para los dos niveles de calidad
+wilcox.test(pH~quality_level, data = wine_quality_red_high_and_medium_low.clean )
+```
+
+En este caso tampoco es posible aceptar la hipótesis nula pero vemos que el valor de *p-value* es mucho mayor que el encontrado en el resto de casos analizados, esto nos indica que aquí el nivel de probabilidad de que puedan ser iguales ha crecido respecto a los otros casos, algo lógico visto el gráfico realizado con *ggplot*.
+
 #### Correlación {#correlaciones}
 
 Hasta el momento hemos descubierto que los vinos blancos consiguen mejor puntuación de calidad que los vinos tintos, y ahora estamos interesados en saber **¿en qué medida las distintas características del vino influyen sobre su calidad?**
 
-Para lograr responder a esta pregunta, podemos llevar a cabo un **análisis de la correlación**, que nos ayudara a medir el nivel de influencia que ejerce cada característica del vino sobre la calidad. 
+Para lograr responder a esta pregunta, podemos llevar a cabo un **análisis de la correlación**, que nos ayudara a medir el nivel de influencia que ejerce cada característica del vino sobre la calidad, se hará uso de la variable *quality_scaled*”*, para que todas las variables involucradas en el cálculo sean variables continuas.
 
 Dado que nuestros datos no siguen una distribución normal, vamos a aplicar una prueba no paramétrica, el coeficiente de **correlación de Spearman**:
  
 ```{r echo = TRUE}
 # Definición de función para extraer un resumen del análisis de outliers
-getCorrelationTableInfo = function (wine_quality, colnames) {
+getCorrelationTableInfo = function (wine_quality, colnames, att_objetivo) {
   # cabecera
   rowHeader = list("type", "att", "estimate", "p-value")
   # inicialización data.frame con los resultados
@@ -843,7 +924,7 @@ getCorrelationTableInfo = function (wine_quality, colnames) {
     for (wine_type in c("red", "white")) {
       # aplicar el test de correlación
       spearman_test = cor.test(wine_quality[wine_quality$type==wine_type,][,col],
-                               wine_quality[wine_quality$type==wine_type,]$quality,
+                               wine_quality[wine_quality$type==wine_type,][,att_objetivo],
                                method="spearman", exact=FALSE)
       correlation_coef = spearman_test$estimate
       p_value = spearman_test$p.value
@@ -855,12 +936,46 @@ getCorrelationTableInfo = function (wine_quality, colnames) {
   }
   return(df)
 }
-# obtener las columnas sobre las que se desea analizar los outliers
+# obtener las columnas sobre las que se desea realizar el análisis
+colnames = names(wine_quality.base[1:11])
+# invocar el análisis e imprimir el resultado
+res = getCorrelationTableInfo(wine_quality.clean.scaled, colnames, 'quality_scaled')
+kable(res)
+``` 
+ 
+```{r echo = TRUE}
+# Definición de función para extraer un resumen del análisis de outliers
+getCorrelationTableInfo = function (wine_quality, colnames, att_objetivo) {
+  # cabecera
+  rowHeader = list("type", "att", "estimate", "p-value")
+  # inicialización data.frame con los resultados
+  df = data.frame(rowHeader,stringsAsFactors = F)  
+  # se itera por los atributos
+  for (col in colnames) {
+    # se itera por los tipos de vino
+    for (wine_type in c("red", "white")) {
+      # aplicar el test de correlación
+      spearman_test = cor.test(wine_quality[wine_quality$type==wine_type,][,col],
+                               wine_quality[wine_quality$type==wine_type,]$quality_scaled,
+                               method="spearman", exact=FALSE)
+      correlation_coef = spearman_test$estimate
+      p_value = spearman_test$p.value
+      
+      # Crear fila de datos y añadir al data.frame
+      row = list(wine_type, col, correlation_coef, p_value);  
+      df= rbind(df,row)
+    }
+  }
+  return(df)
+}
+# obtener las columnas sobre las que se desea realizar el análisis
 colnames = names(wine_quality.base[1:11])
 # invocar el análisis e imprimir el resultado
 res = getCorrelationTableInfo(wine_quality.clean.scaled, colnames)
 kable(res)
 ```
+
+
 
 Como sabemos, el coeficiente de correlación asume valores entre [-1, 1], donde los extremos indican una correlación perfecta, y el 0 indica que no existe ninguna correlación, de igual forma el signo indica la dirección de la correlación.
 
@@ -943,23 +1058,32 @@ A continuación, se incluyen algunas de las correlaciones más reseñables:
 La tarea de **clasificación** es una tarea de data mining de tipo **predictivo**, es decir, hace uso de las variables de los datos disponibles con el objetivo de lograr la predicción de otras variables y/o valores desconocidos de interés, en este caso la variable objetivo se tratará de un valor que se encuentra dentro de un conjunto de clases predefinidos.
 
 En este tipo de tareas, se aplican generalmente métodos **supervisados**, en los que se requiere intervención humana, y cuya entrada es un conjunto de observaciones etiquetada.
+
+Existen diversas técnicas para llevar a cabo la construcción de modelos de clasificación, entre ellos la Regresión Logística, las Máquinas de Soporte Vectorial o SVM por sus siglas en inglés (Support Vector Machines), así como los Árboles de Decisión y los Bosques Aleatorios, entre otros.
+
 En nuestro caso, resulta de gran interés aplicar un método de clasificación para generar un modelo que podrá cumplir un doble papel:
 
-* Ayudarnos a realizar una mejor descripción del dominio de los datos, es decir, puede ayudarnos a entender la relación existente entre las distintas características de los vinos y su calidad.
-* Servirnos como método predictivo de la calidad para nuevas observaciones de datos.
+* ayudarnos a realizar una mejor descripción del dominio de los datos, es decir, puede ayudarnos a entender la relación existente entre las distintas características de los vinos y su calidad,    
+* servirnos como método predictivo de la calidad para nuevas observaciones de datos.
 
-Para llevar a cabo la construcción del modelo, se partirá de los conjuntos de datos asociados a vino tinto y vino blanco, creados en el apartado [Selección grupo de datos a analizar](#selecgruposdatos), y se generará un modelo para cada tipo de vino, siendo la variable objetivo el *quality_level*.
+Por ello, vamos a aplicar principalmente un método de construcción basado en árboles de decisión, ya que estos métodos son muy adecuados cuando se quiere obtener un resultado con una interpretación muy clara y amigable por parte del usuario final, algo que facilitará la primera de los dos objetivos deseados.
+
+En el alcance de este apartado, se trabajarán los modelos de clasificación en sus versiones básicas sin mayores ajustes de sus parámetros. El objetivo es tener un acercamiento a la construcción de modelos, más que estudiar las técnicas que existen para mejorar su desempeño. De modo que no nos vamos a centrar en temas como la aplicación de técnicas para evitar el sobre entrenamiento o el sub-entrenamiento, validación cruzada (*cross-validation*), ajuste de hiper parámetros, ingeniería de variables (*features engineering*) o cualquier otro método específico para evaluación y mejora de modelos de clasificación.
+
+Pero, aunque el objetivo, tal cual se comenta, es trabajar en la construcción más básica de modelos, se considera de interés a nivel formativo realizar algunas pruebas aplicando validación cruzada, la cual puede ser de gran interés en la evaluación de modelos con el fin de determinar que modelo puede obtener resultados más robustos.
+
+Para llevar a cabo la construcción del modelo, puesto que estamos interesados en comprender, para cada tipo de vino, que características tienen los vinos para los distintos niveles de calidad, low / medium/ high, se partirá de los conjuntos de datos asociados a vino tinto y vino blanco, creados en el apartado [Selección grupo de datos a analizar](#selecgruposdatos), y se generará un modelo para cada tipo de vino, siendo la variable objetivo el *quality_level*.
 
 ##### Modelo clasificación nivel de calidad de vino tinto {#clasificacionvinotinto}
 
-Existen diversos métodos para construir modelos de clasificación, en nuestro caso vamos a hacer uso de un método de construcción basado en árboles de decisión, conocido como **CART** (*Classification and Reggression Trees*) que es un método muy extendido y potente. Se usará el algoritmo **RPART**, ya que cuenta con una gran capacidad para generar árboles fácilmente interpretables. 
+Existen diversos métodos para construir modelos de clasificación basados en árboles de decisión, en nuestro caso vamos a hacer uso de un método de construcción conocido como **CART** (*Classification and Reggression Trees*) que es un método muy extendido y potente. Se usará el algoritmo **RPART**, ya que cuenta con una gran capacidad para generar árboles fácilmente interpretables. 
 
 ```{r echo = TRUE}
 ## constucción modelo CART
 
 # se seleccionan los datos usados para la construcción del modelo 
 # (incluye solo características)
-wine_quality = data.frame(wine_quality_red.clean[c(1:11,13)])
+wine_quality = data.frame(wine_quality_red.clean[c(1:11,14)])
 #wine_quality$quality = as.factor(wine_quality$quality )
 # Se establece una semilla para que los resultados sean reproducibles
 set.seed(10)
@@ -986,8 +1110,6 @@ printcp(modelCARTIt1)
 ```
 
 En el resultado, se puede observar el detalle de la construcción del modelo, algunos datos relevantes que podemos encontrar son las variables usadas para la construcción del modelo, y el porcentaje de error en función del nivel de partición del árbol, que puedes ser obtenido del *root node error*, y a partir de la tabla que figura a continuación de dicho valor.
-
-En el resultado, se puede observar el detalle de la construcción del modelo, algunos datos relevantes que podemos encontrar son las variables usadas para la construcción del modelo, y el porcentaje de error en función del nivel de partición del árbol, que puedes ser obtenido del root node error, y a partir de la tabla que figura a continuación de dicho valor.
 Una vez construido el modelo, podemos realizar la predicción de las observaciones de test, y visualizar el resultado, y la matriz de contingencias asociada.
 
 ```{r echo = TRUE}
@@ -1028,12 +1150,133 @@ En conclusión, obtenemos un modelo predictivo que nos ofrece una calidad estima
 
 A nivel predictivo cometerá errores, pero a nivel de comprensión del dominio de los datos podrá ofrecer una muy buena para mejorar en el nivel de conocimiento de las características del vino que influyen sobre la calidad de este, ya que se obtiene una visión muy fácilmente entendible.
 
+Una vez que hemos obtenido un modelo que responde bien a los objetivos descriptivos perseguidos, sería muy lógico preguntarnos, **¿es este el mejor modelo predictivo que podemos obtener?**. Como se ha indicado inicialmente existen diversas técnicas para construir modelos de clasificación, la calidad del resultado obtenido con cada una de ellas no tiene por qué ser la misma. Es en este punto donde puede hacerse uso de técnicas de validación cruzada para facilitar la labor de evaluación de distintos modelos.
+
+En la construcción del modelo de clasificación que acabamos de realizar, se ha partido de un conjunto de datos inicial, y se han crearon al azar dos conjuntos separados, un conjunto de entrenamiento y un conjunto de validación. Una vez realizado el entrenamiento del modelo con el primer conjunto, se ha aplicado dicho modelo sobre el conjunto de validación, con el objetivo de evaluar la precisión en la predicción, y en consecuencia también su error.
+
+Pero, dado que partimos de unos datos de entrenamiento y de validación seleccionados aleatoriamente, los resultados se pueden ver afectados por el azar. Así mismo, los resultados también se pueden ver afectados por la estrategia de cada método y los parámetros propios de cada modelo de clasificación con el que se trabaje. Por lo tanto, no necesariamente se van a obtener siempre los mismos resultados y, en consecuencia, las mismas precisiones y errores en cada ejecución de los algoritmos.
+
+Por ello, cuando lo que se persigue es encontrar el modelo predictivo que suministra mejores resultados, considerando la medición de la calidad de la predicción de los modelos, puede ser de gran ayuda realizar una Validación Cruzada sobre los datos de entrada.
+La Validación Cruzada o *k-fold Cross Validation* consiste en tomar los datos originales y crear a partir de ellos dos conjuntos separados: uno de entrenamiento (y prueba), y otro de validación. A continuación, el conjunto de entrenamiento será dividido en *k* subconjuntos y una vez se realiza el entrenamiento, se va a tomar cada *ksubconjunto* como conjunto de prueba del modelo, mientras que el resto de los datos se tomará como conjunto de entrenamiento.
+
+El proceso descrito será repetido *k* veces, y en cada iteración se seleccionará un conjunto de prueba diferente, mientras los datos restantes se emplearán como conjunto de entrenamiento. En cada iteración, se calcula la precisión y el error del modelo construido, y con el fin de obtener un valor de precisión y de error final, se calcula el promedio de los *k* modelos entrenados. 
+
+De esta forma obtendremos la precisión y error promedio para un determinado modelo. Para el resto de los modelos que se quieran evaluar, se llevará a cabo exactamente la misma operación, obteniendo como resultado un conjunto de valores de precisión y error que podrán ser comparados para determinar cual es el modelo más óptimo.
+
+Partiendo de estas bases, a continuación, vamos entonces a aplicar esta técnica sobre el conjunto de entrenamiento y validación generados anteriormente, y para evaluar algunas de las técnicas de construcción de modelos de clasificación citadas inicialmente.
+
+```{r echo = TRUE}
+# función para recuperar la precisión deducible de una matriz de confusión de 3 niveles
+getPrecessionFromCm = function(cm) {
+  precision = (cm[1,1] + cm[2,2] + cm[3,3])/ (cm[1,1] + cm[1,2] + cm[1,3] + cm[2,1] + cm[2,2] + cm[2,3]+ cm[3,1]+ cm[3,2]+ cm[3,3])
+  return(precision)
+}
+
+getTablePrecisionModelCrossValidation = function() {
+  # aplicación de la función *createFolds* del paquete *caret*, para luego poder entrenar un conjunto 
+  # de modelos sobre k = 10, para lo que nos ayudaremos de la función *lapply*
+  library(caret)
+  folds <- createFolds(training_set$quality_level, k = 10)
+  
+  # modelo k-NN
+  library(class)
+  cvkNN = lapply(folds, function(x){
+    training_fold = training_set[-x, ]
+    test_fold = training_set[x, ]
+    y_pred = knn(training_fold[, -12], 
+                  test_fold[, -12], 
+                  cl = training_fold[, 12], 
+                  k = 10)
+    cm = table(test_fold$quality_level, y_pred)
+    precision = getPrecessionFromCm(cm)
+    return(precision)
+  })
+  precisionkNN = mean(as.numeric(cvkNN))
+  precisionkNN = round(precisionkNN*100,2)
+  
+  # modelo Kernel-SVM
+  library(e1071)
+  cvKernelSVM = lapply(folds, function(x){
+    training_fold = training_set[-x, ]
+    test_fold = training_set[x, ]
+    clasificador = svm(quality_level ~ .,
+                        data = training_fold, 
+                        type = 'C-classification', 
+                        kernel = 'radial')
+    y_pred = predict(clasificador, newdata = test_fold)
+    cm = table(test_fold$quality_level, y_pred)
+    precision = getPrecessionFromCm(cm)
+    return(precision)
+  })
+  precisionKernelSVM = mean(as.numeric(cvKernelSVM))
+  precisionKernelSVM = round(precisionKernelSVM*100,2)
+  
+  # modelo Naive Bayes
+  cvNaiveBayes = lapply(folds, function(x){
+    training_fold = training_set[-x, ]
+    test_fold = training_set[x, ]
+    clasificador = naiveBayes(quality_level ~ ., data = training_fold)
+    y_pred = predict(clasificador, newdata = test_fold)
+    cm = table(test_fold$quality_level, y_pred)
+    precision = getPrecessionFromCm(cm)
+    return(precision)
+  })
+  precisionNaiveBayes = mean(as.numeric(cvNaiveBayes))
+  precisionNaiveBayes = round(precisionNaiveBayes*100,2)
+  
+  # modelo Decision Tree
+  library(rpart)
+  cvDecisionTree = lapply(folds, function(x){
+    training_fold = training_set[-x, ]
+    test_fold = training_set[x, ]
+    clasificador = rpart(quality_level ~ ., data = training_fold)
+    y_pred = predict(clasificador, newdata = test_fold, type = 'class')
+    cm = table(test_fold$quality_level, y_pred)
+    precision = getPrecessionFromCm(cm)
+    return(precision)
+  })
+  precisionDecisionTree = mean(as.numeric(cvDecisionTree))
+  precisionDecisionTree = round(precisionDecisionTree*100,2)
+  
+  # modelo Random Forest
+  library(randomForest)
+  cvRandomForest = lapply(folds, function(x){
+    training_fold = training_set[-x, ]
+    test_fold = training_set[x, ]
+    clasificador = randomForest(quality_level ~ ., data = training_fold, ntree = 250)
+    y_pred = predict(clasificador, newdata = test_fold)
+    cm = table(test_fold$quality_level, y_pred)
+    precision = getPrecessionFromCm(cm)
+    return(precision)
+  })
+  precisionRandomForest = mean(as.numeric(cvRandomForest))
+  precisionRandomForest = round(precisionRandomForest*100,2)
+  
+  # creamos una tabla resumen con los resultados
+  # - cabecera
+  rowHeader = list("Medida", "k-NN", "Kernel-SVM", "Naive Bayes", "Decisión Tree", "Random Forest")
+  # - inicialización data.frame con los resultados
+  df = data.frame(rowHeader,stringsAsFactors = F)  
+  # Crear las filas de datos y añadir al data.frame
+  row = list("Precision", precisionkNN, precisionKernelSVM, precisionNaiveBayes, precisionDecisionTree, precisionRandomForest);  
+  df= rbind(df,row)
+  row = list("Error", 100-precisionkNN, 100-precisionKernelSVM, 100-precisionNaiveBayes, 100-precisionDecisionTree, 100-precisionRandomForest);  
+  df= rbind(df,row)  
+}
+
+kable(getTablePrecisionModelCrossValidation())
+```
+
+Comparando los valores obtenidos para cada modelo vemos que el modelo que ofrece mejores resultados predictivos es el construido aplicado **Random Forest**, a continuación, le sigue el de *Kernel SVM* y en tercer lugar nos encontramos con el construido aplicando *Decision Tree*; por lo tanto, como modelo predictivo podría ser escogido un modelo construido con *Random Forest* a partir de todas la observaciones de la muestra.
+
+También podemos comparar el valor de precisión promedio obtenido para los árboles de decisión aplicando validación cruzada, 84.23%, respecto al obtenido inicialmente 81.50%, vemos que mejora.  
+
 ##### Modelo clasificación nivel de calidad de vino blanco {#clasificacionvinoblanco}
 
 ```{r echo = TRUE}
 # se seleccionan los datos usados para la construcción del modelo 
 # (incluye solo características)
-wine_quality = data.frame(wine_quality_white.clean[c(1:11,13)])
+wine_quality = data.frame(wine_quality_white.clean[c(1:11,14)])
 #wine_quality$quality = as.factor(wine_quality$quality )
 # Se establece una semilla para que los resultados sean reproducibles
 set.seed(10)
@@ -1095,6 +1338,16 @@ rpart.plot(modelCARTIt2, type = 0, clip.right.lab = FALSE, branch = .3, under = 
 ```
 
 En conclusión, obtenemos un modelo predictivo que nos ofrece una calidad estimada del 76.55%, inferior que la lograda con el modelo de clasificación para vinos tintos. En cualquier caso, al igual que con los vinos tintos, este modelo cumplirá suficientemente con los objetivos esperados para este proyecto analítico.
+
+A continuación, de igual forma que hicimos en el apartado previo, vamos a aplicar Validación Cruzada sobre un conjunto de modelos:
+
+```{r echo = TRUE}
+kable(getTablePrecisionModelCrossValidation())
+```
+
+Comparando los valores obtenidos para cada modelo, vemos que el modelo que ofrece mejores resultados predictivos es el construido aplicado **Random Forest**, a continuación, le sigue el de *Kernel SVM* y en tercer lugar nos encontramos con el construido aplicando *Decision Tree*; como se puede observar, unos resultados similares a los que habíamos obtenido en la construcción del modelo para vino tinto.
+
+Comparando el valor de precisión promedio obtenido para los árboles de decisión aplicando validación cruzada, 75.89%, respecto al obtenido inicialmente 76.55%, vemos que en este caso empeora, por lo tanto el modelo inicial parece que obtiene unos resultados un poco mejores que el promedio.  
 
 ### Representación y visualización de los datos
 
@@ -1158,7 +1411,9 @@ lbls = paste(lbls,"%",sep="") ## añadir caracer % a las label
 pie(pie_values, labels = lbls, main="White Wine-rating split up", col=brewer.pal(10, "Spectral"))
 ```
 
-Queremos entender que características del vino influencian la calidad del mismo, para lo que nos apoyamos en gráficos que facilitan la visualización de las correlaciones entre variables. 
+Queremos entender que características del vino influencian la calidad del mismo, para lo que nos apoyamos en gráficos que facilitan la visualización de la distribución y correlación de las variables.
+
+Comenzamos sectorizando por la característica tipo de vino:
 
 ```{r message= FALSE, warning=FALSE}
 # visualización múltiple
@@ -1173,9 +1428,40 @@ wine_quality = wine_quality_white.clean.scaled
 plotCorrelation(wine_quality)
 ```
 
-Como habíamos observado previamente, existen algunas características que están más significativamente correladas con la calidad, si retomamos las tablas resumen de correlaciones para vino tinto que incluimos en el apartado [Correlaciones](#correlaciones), podremos analizar tanto como se ve influenciada la calidad por cada característica del vino, como la forma en que cada variable se ve influenciada por el resto.
+Y continuamos sectorizando por el nivel de calidad, dentro del contexto de cada tipo de vino.
 
-Por ejemplo, en el siguiente gráfico estudiamos un poquito más la relación entre las variables que mayor correlación tenían con la calidad para el **vino tinto**, *volatile.acidity*, *alcohol* y *quality*:
+* **Vino tinto**:
+```{r message= FALSE, warning=FALSE}
+ggpairs(wine_quality.clean[wine_quality.clean$type == "red",], aes(colour = quality_level, alpha = 0.4))
+```
+
+En el resultado obtenido, podemos ver, por ejemplo, como las características *volatile.acidity, citric.acidity, sulphates* y *alcohol* son algunas de las que mayor variación tienen en función de la calidad del vino, más adelante se estudiará con más detalle.
+
+* **Vino blanco**:
+Y continuamos obtenemos la misma información para el vino blanco:
+```{r message= FALSE, warning=FALSE}
+ggpairs(wine_quality.clean[wine_quality.clean$type == "white",], aes(colour = quality_level, alpha = 0.4))
+```
+
+Para el vino blanco, la variación de las distintas características para los distintos niveles de calidad es un poco menos significativa que la que encontrábamos en el vino tinto, en este caso las mayores variaciones podemos encontrarlas por ejemplo en *volatile.acidity, free.sulfur.dioxide, total.sulfur.dioxidy* y *alcohol*.
+
+Seguidamente, se estudia como el conjunto de características para cada tipo de vino influencian la calidad del mismo.
+
+Como habíamos observado previamente, existen algunas características que están más significativamente correladas con la calidad, si retomamos las tablas resumen de correlaciones para vino tinto que incluimos en el apartado [Correlaciones](#correlaciones), podremos analizar tanto como se ve influenciada la calidad por cada característica del vino, como la forma en que cada variable se ve influenciada por el resto, así como que características del vino influencian la calidad independientemente del tipo de vino. Tras estos análisis se concluye que efectivamente existen ciertas características del vino que están más interrelacionadas con su calidad, como son:
+
+* Vinos tintos:     
+    - Volatile.acidity, a menor nivel de ácido volátil, mayor nivel de calidad.
+    - 	Alcohol: a mayor nivel de alcohol, mayor nivel de calidad.
+    - 	Sulphates: a mayor nivel de sufatos, mayor nivel de calidad.
+
+* Vinos blancos:    
+    - 	Alcohol: a mayor nivel de alcohol, mayor nivel de calidad.
+    - 	Density: a menor nivel de densidad, mayor nivel de calidad.
+    - 	Chlorides: a menor nivel de clorides, mayor nivel de calidad.
+
+De lo cual deducimos que excepto en el nivel Alcohol, que para ambos tipos de vino cuanta más graduación de alcohol, más calidad se suele encontrar, el resto de las características más reseñables, son específicas al tipo de vino. De la información obtenida, también se puede observar que características influencian a su vez, estas características que tienen una correlación mayor con la calidad; pero para el alcance de este estudio no se va a entrar a ese nivel de detalle.
+
+En el siguiente gráfico estudiamos un poquito más la relación entre las variables que mayor correlación tenían con la calidad para el **vino tinto**, *volatile.acidity*, *alcohol* y *quality*:
 
 ```{r echo = TRUE}
 # función para pintar un plot con la regresión lineal entre dos variables, agrupado por quality
@@ -1213,7 +1499,7 @@ wine_quality$quality = as.factor(wine_quality$quality)
 plotQualityRegression(wine_quality,  "alcohol", "density", "White Whine")
 ```
 
-Si ahora, hacemos uso de la información del modelo de clasificación construido, vemos que para vino tinto contamos con la siguiente información:
+Si ahora, hacemos uso de la información del modelo de clasificación construido, vemos que para **vino tinto** contamos con la siguiente información:
 
 * características usadas:
      *alcohol, citric.acid, density, pH, residual.sugar, sulphates, total.sulfur.dioxide, volatile.acidity* 
@@ -1227,8 +1513,50 @@ En el siguiente diagrama se muestra el árbol de clasificación obtenido:
 rpart.plot(modelCARTIt1, type = 0, clip.right.lab = FALSE, branch = .3, under = TRUE, box.palette = "auto", tweak = 1.0,  fallen.leaves=FALSE )
 ```
 
+A partir del árbol previo, haciendo uso de la función *asRules* de la librería *rattle* pueden ser generadas unas reglas como las que siguen:
 
-Y si revisamos el árbol de clasificación para vino blanco contamos con:
+**high**:     
+-	alcohol< 0.976 & volatile.acidity< -0.1058 & alcohol>=-0.01769 & pH< 0.05787 [(24) cover=32 (3%) prob=0.72]
+-	alcohol>=0.976 & sulphates>=0.5989 & volatile.acidity>=0.1963 & total.sulfur.dioxide>=-0.6829 [(18) cover=14 (1%) prob=0.79]
+-	alcohol>=0.976 & sulphates>=0.5989 & volatile.acidity< 0.1963 & total.sulfur.dioxide< -0.58 [(16) cover=45 (4%) prob=0.84]
+-	alcohol< 0.976 & volatile.acidity< -0.1058 & alcohol>=-0.01769 & pH>=0.05787 & sulphates>=1.317 & residual.sugar>=-0.4279 [(100) cover=7 (1%) prob=0.86]
+-	alcohol>=0.976 & sulphates< 0.5989 & citric.acid>=-0.1839 & volatile.acidity>=-0.6549 & density< -0.5906 [(40) cover=9 (1%) prob=0.89]
+
+**medium:**    
+-	alcohol>=0.976 & sulphates< 0.5989 & citric.acid>=-0.1839 & volatile.acidity>=-0.6549 & density>=-0.5906 [(41)  cover=20 (2%) prob=0.35]
+-	alcohol>=0.976 & sulphates>=0.5989 & volatile.acidity>=0.1963 & total.sulfur.dioxide< -0.6829 [(19) cover=24 (2%) prob=0.33]
+-	alcohol< 0.976 & volatile.acidity< -0.1058 & alcohol>=-0.01769 & pH>=0.05787 & sulphates>=1.317 & residual.sugar< -0.4279 [(101) cover=22 (2%) prob=0.32]
+-	alcohol>=0.976 & sulphates>=0.5989 & volatile.acidity< 0.1963 & total.sulfur.dioxide>=-0.58 [(17) cover=7 (1%) prob=0.29]
+-	alcohol< 0.976 & volatile.acidity< -0.1058 & alcohol>=-0.01769 & pH>=0.05787 & sulphates< 1.317 [(51) cover=29 (2%) prob=0.10]
+-	alcohol>=0.976 & sulphates< 0.5989 & citric.acid>=-0.1839 & volatile.acidity< -0.6549 [(21) cover=9 (1%) prob=0.11]
+-	alcohol< 0.976 & volatile.acidity < -0.1058 & alcohol< -0.01769 [(13) cover=92 (8%) prob=0.09]
+-	alcohol>=0.976 & sulphates< 0.5989 & citric.acid< -0.1839 [(11) cover=46 (4%) prob=0.09]
+-	alcohol< 0.976 & volatile.acidity >=-0.1058 [(7) cover=843 (70%) prob=0.04]
+
+En las que podemos observar que la clasificación ha sido realizada para los niveles alto y medio, dejándose fuera el nivel bajo.
+
+Otra forma de representar las mismas reglas que nos puede ayudar es la que son las que se obtienen imprimiendo directamente el modelo:
+```{r echo = TRUE}
+modelCARTIt1
+```
+
+En esta representación del árbol, la hoja es el nodo terminal donde no se realizan más divisiones, y se denota con un signo de asterisco (*). En cada hoja y nodo, se muestran los siguientes valores de salida:
+
+* condición de la división (alcohol>=0.9760418),
+* número de puntos de datos pertenecientes al nodo / hoja,
+* número de pérdidas (es decir, número de errores de clasificación) en el nodo / hoja,
+* valor objetivo de la probabilidad más alta en el nodo / hoja,
+* entre paréntesis, las puntuaciones de probabilidad de cada valor objetivo en el nodo / hoja
+Si nos centramos en el análisis de las características que cumplen los vinos tintos con alta calidad podemos intentar sintetizar algunas de las condiciones que hacen más probable una calidad alta:
+* Cuando el alcohol>=0.9760418 y sulphates>=0.5989101 encontramos una probabilidad del 65% de que los vinos que cumplen esa característica sean de alta calidad.
+Si además de estas características se cumple que:
+    - El volatile.acidity< 0.1962908 entonces existe una probabilidad del 77% de que los vinos sean de alta calidad, y si además se cumple total.sulfur.dioxide< -0.5800127, la probabilidad sube al 84%.
+    - O que volatile.acidity>=0.1962908 y además total.sulfur.dioxide>=-0.6828779 encontramos una probabilidad del 79% de que los vinos sean de alta calidad.
+* Cuando el alcohol>=0.9760418 pero sulphates< 0.5989101 y además se cumple que citric.acid>=-0.1839417, volatile.acidity>=-0.6549307  y  density< -0.5905949 encontramos una probabilidad del 89% de que los vinos sean de alta calidad.
+* En el caso de que -0.01769148 < alcohol < 0.9760418 y pH < 0.05786893 encontramos que en un 72% de los casos el vino será de alta calidad.
+* Y finalmente, cuando se cumple que 0.01769148 < alcohol < 0.9760418, pH>=0.05786893, sulphates>=1.31729 y residual.sugar>=-0.427919, en un 85% de los casos el vino será de alta calidad.
+
+Y si revisamos el árbol de clasificación para **vino blanco** contamos con:
 * características usadas:
     *alcohol, chlorides, citric.acid, density, pH, residual.sugar, sulphates, volatile.acidity*.* 
 * características excluidas:
@@ -1237,12 +1565,45 @@ Y si revisamos el árbol de clasificación para vino blanco contamos con:
 En el siguiente diagrama se muestra el árbol de clasificación obtenido:
 
 ```{r echo = TRUE}
-
 ## realizamos plot del árbol de clasificación - vino blanco
 rpart.plot(modelCARTIt2, type = 0, clip.right.lab = FALSE, branch = .3, under = TRUE, box.palette = "auto", tweak = 1.0,  fallen.leaves=FALSE )
 ```
 
 En ambos casos, el detalle de las reglas de clasificación obtenidas, que podemos encontrar en el apartado [Modelo de clasificación vino tinto](#clasificacionvinotinto) y [Modelo de clasificación vino blanco](#clasificacionvinoblanco),  nos dará una idea muy clara como influencian las distintas características a la calidad obtenida.
+
+A partir del árbol previo, haciendo uso de la función asRules de la librería rattle pueden ser generadas unas reglas como las que siguen:
+
+**high**:     
+* alcohol>=0.5108 & alcohol>=2.03 [(4) cover=48 (4%) prob=0.71]
+* alcohol>=0.5108 & alcohol< 2.03 & pH>=-0.9737 & volatile.acidity< -0.5402 &   volatile.acidity< -1.204 & citric.acid>=-0.1839 [(84) cover=26 (2%) prob=0.73]
+* alcohol>=0.5108 & alcohol< 2.03 & pH>=-0.9737 & volatile.acidity>=-0.5402 &  residual.sugar>=-0.5762 & chlorides< -1.134 [(80) cover=35 (3%) prob=0.80]
+* alcohol>=0.5108 & alcohol< 2.03 & pH>=-0.9737 & volatile.acidity>=-0.5402 &  residual.sugar>=-0.5762 & chlorides>=-1.134 & density< -1.295 [(162) cover=15 (1%) prob=0.80]
+* alcohol< 0.5108 & volatile.acidity< -0.9432 & pH< -1.747 & sulphates< -0.8382 [(24) cover=17 (1%) prob=0.82]
+
+medium:
+* alcohol>=0.5108 & alcohol< 2.03 & pH>=-0.9737 & volatile.acidity>=-0.5402 residual.sugar< -0.5762 [(41) cover=17 (1%) prob=0.18]
+* alcohol>=0.5108 & alcohol< 2.03 & pH>=-0.9737 & volatile.acidity>=-0.5402 & residual.sugar>=-0.5762 & chlorides>=-1.134 & density>=-1.295 [(163) cover=22 (2%) prob=0.18]
+* alcohol>=0.5108 & alcohol< 2.03 & pH>=-0.9737 & volatile.acidity< -0.5402 & volatile.acidity>=-1.204 [(43) cover=133 (11%) prob=0.30]
+* alcohol>=0.5108 & alcohol< 2.03 & pH< -0.9737 [quality_level=medium cover=105 (9%) prob=0.20]
+* alcohol< 0.5108 & volatile.acidity< -0.9432 & pH>=-1.747 [(13) cover=230 (19%) prob=0.20]
+* alcohol>=0.5108 & alcohol< 2.03 & pH>=-0.9737 & volatile.acidity< -0.5402 & volatile.acidity< -1.204 & citric.acid< -0.1839 [(85) cover=8 (1%) prob=0.12]
+* alcohol< 0.5108 & volatile.acidity< -0.9432 & pH< -1.747 & sulphates>=-0.8382 [(25) cover=9 (1%) prob=0.11]
+* alcohol< 0.5108 & volatile.acidity>=-0.9432 [(7) cover=533 (44%) prob=0.06]
+
+Aplicando la otra forma de representación:
+
+```{r echo = TRUE}
+modelCARTIt2
+```
+
+Si al igual que hemos hecho previamente, nos centramos en el análisis de las características que cumplen los vinos blancos con alta calidad podemos intentar sintetizar algunas de las condiciones que hacen más probable una calidad alta:
+
+* Cuando el alcohol>=2.030108 encontramos una probabilidad del 70% de que los vinos que cumplen esa característica sean de alta calidad.
+* En el caso de que el alcohol< 2.030108,  el pH>=-0.9737439, volatile.acidity>=-0.5401531 y el residual.sugar>=-0.5762161 existirá una probabilidad del 60% de que el vino sea de alta calidad. Si además se cumple:
+    - Que chlorides< -1.133941 encontraremos una probabilidad del 80% de que el vino sea de alta calidad.
+    - O si chlorides>=-1.133941 y además density< -1.29466 también tendremos una probabilidad del 80%.
+* En el caso de que el alcohol< 2.030108,  el pH>=-0.9737439 pero el volatile.acidity< -1.204106 y citric.acid>=-0.1839417 entonces existirá una probabilidad del 73% de encontramos con un vino de alta calidad.
+* Finalmente, si el alcohol< 0.5107729, y además volatile.acidity< -0.9432477, pH< -1.747453 y sulphates< -0.8382212 encontraremos una probabilidad del 82% de estar ante un vino de alta calidad.
 
 ## Resolución del problema – *problem resolution*
 
@@ -1250,19 +1611,66 @@ Finalmente, llegados a este punto, toca hacer una evaluación del conjunto de ac
 
 A lo largo de los apartados previos se han llevado a cabo las fases principales de un proyecto analítico. 
 
-* En la etapa de definición del problema hemos acotado el objetivo del proyecto analítico, estableciéndose como objetivo principal el lograr adquirir una idea de cómo las distintas características asociadas a un vino llegan a influenciar la calidad de este.
+* En la etapa de **definición del problema** hemos acotado el objetivo del proyecto analítico, estableciéndose como objetivo principal el lograr adquirir una idea de cómo las distintas características asociadas a un vino llegan a influenciar la calidad de este.
 
-* En la etapa de selección, recuperación y persistencia de los datos, se han obtenido los distintos conjuntos de datos desde su fuente de datos original, y se han llevado a cabo tareas de integración y limpieza.     
-    En la integración y selección de los datos se han considerado tanto vinos tintos, como blancos, asegurándonos de contar con el mismo número de observaciones para ambos tipos de vino para contar con una muestra equitativa; además se han realizado tareas de limpieza de valores identificados como missing values y outliers, aplicando el método missForest para la imputación de valores.    
-    Adicionalmente se han realizado algunas transformaciones, normalizando y estandarizando alguno de los valores, con el fin de preparar los datos para los distintos análisis a ser realizados.
+* En la etapa de **selección, recuperación y persistencia de los datos**, se han obtenido los distintos conjuntos de datos desde su fuente de datos original, y se han llevado a cabo tareas de integración y limpieza.     
+    En la integración y selección de los datos se aplicaron técnicas de sampling para obtener un tamaño de muestra equivalente para distintos grupos; además se han realizado tareas de limpieza de valores identificados como missing values y outliers, aplicando el método missForest para la imputación de valores.    
+    Adicionalmente se han realizado algunas transformaciones, normalizando y estandarizando alguno de los valores, con el fin de preparar los datos para los distintos análisis a ser realizados.    
 
-* En la etapa de análisis de los datos en primer lugar se han seleccionado los datos sobre los que se van a realizar los análisis, para posteriormente llevarse a cabo verificaciones de la normalidad y homogeneidad en dichos datos, y comparaciones entre grupos, con el fin de determinar si existen diferencias significativas en la calidad del vino en función de si es tinto o blanco, concluyéndose que si existen diferencias significativas, contando el vino blanco con mayor calidad que el vino tinto.    
+* En la etapa de **análisis de los datos** en primer lugar se han seleccionado los datos sobre los que se van a realizar los análisis, para posteriormente llevarse a cabo verificaciones de la normalidad y homogeneidad en dichos datos, y comparaciones entre grupos, con el fin de determinar si existen diferencias significativas en la calidad del vino en función de su tipo, así como si existen diferencias significativas en algunas características en función del nivel de calidad.    
     A continuación, se ha analizado la correlación de las distintas características respecto a la calidad del vino, así como la correlación de las características entre sí, obteniéndose el conjunto de características que mayor correlación tienen con la calidad, y entre ellas.    
-    Con el fin de adentrarse más en el conocimiento de como las distintas características influencian la calidad del vino, así como de lograr obtener un modelo de predicción de la calidad para nuevas observaciones, se ha construido un modelo de clasificación que logra con una calidad decente ambos objetivos.
+    Con el fin de adentrarse más en el conocimiento de como las distintas características influencian la calidad del vino, así como de lograr obtener un modelo de predicción de la calidad para nuevas observaciones, se ha construido un modelo de clasificación que logra con una calidad decente ambos objetivos. En este punto también se han aplicado técnicas de Validación Cruzada para obtener el modelo de clasificación que maximiza la precisión.
 
-* Para completar la etapa de análisis, en la etapa de representación y visualización de los datos, se han revisado y completado los análisis visuales, obteniéndose un conjunto de gráficos que aprovechan la capacidad visual humana para la detección de patrones y tendencias.     
+* Para completar la etapa de análisis, en la etapa de **representación y visualización de los datos**, se han revisado y completado los análisis visuales, obteniéndose un conjunto de gráficos que aprovechan la capacidad visual humana para la detección de patrones y tendencias.     
     En esta etapa han podido ser organizado, resumido y confirmado el conocimiento adquirido a lo largo de las etapas previas.
 
+Centrándonos ahora en las conclusiones que hemos ido obtenido a lo largo del análisis:
+
+Hemos comenzado enfocándonos en estudiar si la característica "*tipo de vino*” influía sobre la calidad, para ello se ha realizado un contraste de hipótesis planteándonos la pregunta **¿existen diferencias significativas en la calidad del vino en función de si es tinto o blanco?**, determinando que efectivamente existen diferencias significativas en los niveles de calidad en función del tipo de vino. Concretamente se ha encontrado que los niveles de calidad son superiores para los vinos blancos que para los vinos tintos.
+
+Partiendo de esta base, a continuación, se ha decidido realizar un estudio independiente para cada tipo de vino, con el objetivo entender si **¿existen variaciones significativas en las características de los vinos en función de su calidad?**, para lo cual se han aplicado técnicas de contraste de hipótesis, y estudios de correlación. Tras los distintos análisis se ha determinado que efectivamente existen ciertas características del vino que están más interrelacionadas con su calidad, como son:
+
+* Vinos tintos:     
+    - Volatile.acidity, a menor nivel de ácido volátil, mayor nivel de calidad.
+    - Alcohol: a mayor nivel de alcohol, mayor nivel de calidad.
+    - Sulphates: a mayor nivel de sufatos, mayor nivel de calidad.
+    
+* Vinos blancos:
+    - Alcohol: a mayor nivel de alcohol, mayor nivel de calidad.
+    - Density: a menor nivel de densidad, mayor nivel de calidad.
+    - Chlorides: a menor nivel de clorides, mayor nivel de calidad.
+
+Esta enumeración no implica que sean estas las únicas premisas que den lugar a un vino de alta calidad, ya que la calidad se ve influenciada por más características. Las características que se indican son las que se han encontrado más reseñables en este punto del análisis. Aunque en el alcance de esta práctica se ha decidió no entrar en más nivel de profundidad, sería interesante adentrarse en el estudio de cómo se influencian entre sí las distintas características, ya que eso indirectamente tiene efectos también sobre las características que más influencian la calidad.
+
+Adicionalmente, podemos observar, que excepto en el nivel Alcohol, que para ambos tipos de vino se obtiene que, con cuanta más graduación de alcohol más calidad se suele encontrar, el resto de las características más reseñables, son específicas al tipo de vino. 
+
+Finalmente, con el fin de adentrarme aún más en el conocimiento que se había obtenido tras el análisis de correlación, en el apartado de Clasificación se opta por construir un modelo de clasificación para cada tipo de vino. El objetivo es lograr, por un lado, obtener un modelo descriptivo de las características que cumplen los vinos de cada nivel de calidad (bajo, medio, alto); y por otro lado un modelo predictivo para nuevas observaciones.
+
+En lo que respecta al modelo predictivo, haciendo uso de técnicas de validación cruzadas, se concluye que un modelo construido aplicando la técnica **Random Forest** es el que puede obtener mayor nivel de precisión.
+
+Y en lo que respecta la función descriptiva del modelo, se obtienen que cuando se analiza las características que cumplen los **vinos tintos** con **alta calidad** podemos hallar las siguientes reglas descriptivas:
+
+* Cuando el alcohol>=0.9760418 y sulphates>=0.5989101 encontramos una probabilidad del 65% de que los vinos que cumplen esa característica sean de alta calidad. Si además de estas características se cumple que:        
+    - El volatile.acidity< 0.1962908 entonces existe una probabilidad del 77% de que los vinos sean de alta calidad, y si además se cumple total.sulfur.dioxide< -0.5800127, la probabilidad sube al 84%.
+    - O que volatile.acidity>=0.1962908 y además total.sulfur.dioxide>=-0.6828779 encontramos una probabilidad del 79% de que los vinos sean de alta calidad.    
+* Cuando el alcohol>=0.9760418 pero sulphates< 0.5989101 y además se cumple que citric.acid>=-0.1839417, volatile.acidity>=-0.6549307  y  density< -0.5905949 encontramos una probabilidad del 89% de que los vinos sean de alta calidad.    
+* En el caso de que -0.01769148 < alcohol < 0.9760418 y pH < 0.05786893 encontramos que en un 72% de los casos el vino será de alta calidad.
+* Y finalmente, cuando se cumple que 0.01769148 < alcohol < 0.9760418, pH>=0.05786893, sulphates>=1.31729 y residual.sugar>=-0.427919, en un 85% de los casos el vino será de alta calidad.    
+
+Y en el caso de los **vinos blancos** de **alta calidad** obtenemos las siguientes reglas:
+
+* Cuando el alcohol>=2.030108 encontramos una probabilidad del 70% de que los vinos que cumplen esa característica sean de alta calidad.    
+* En el caso de que el alcohol< 2.030108,  el pH>=-0.9737439, volatile.acidity>=-0.5401531 y el residual.sugar>=-0.5762161 existirá una probabilidad del 60% de que el vino sea de alta calidad. Si además se cumple:    
+    - Que chlorides< -1.133941 encontraremos una probabilidad del 80% de que el vino sea de alta calidad.     
+    - O si chlorides>=-1.133941 y además density< -1.29466 también tendremos una probabilidad del 80%.    
+* En el caso de que el alcohol< 2.030108,  el pH>=-0.9737439 pero el volatile.acidity< -1.204106 y citric.acid>=-0.1839417 entonces existirá una probabilidad del 73% de encontramos con un vino de alta calidad.     
+* Finalmente, si el alcohol< 0.5107729, y además volatile.acidity< -0.9432477, pH< -1.747453 y sulphates< -0.8382212 encontraremos una probabilidad del 82% de estar ante un vino de alta calidad.     
+
+En resumen:    
+
+* El tipo de vino, blanco / tinto, tiene influencia sobre la calidad. Los vinos blancos alcanzan niveles de calidad superiores a los vinos tintos.    
+* Para cada tipo de vino existen características que influencian más su calidad, para vino tinto algunas de las más significativas son: el ácido volátil, el alcohol y los sulfatos; y para vino blanco: el alcohol, la densidad y los clorides; pero no existe una relación directa entre una característica y la calidad, existiendo una serie de condiciones sobre las distintas características que pueden ayudar a determinar su calidad.     
+* Tanto en vinos blancos como en vinos tintos, a mayor nivel de alcohol se encuentra mayor nivel de calidad.
 
 ---
 nocite: |
